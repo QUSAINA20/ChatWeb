@@ -33,17 +33,16 @@ window.axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
 //     forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
 //     enabledTransports: ['ws', 'wss'],
 // });
-
 import Echo from "laravel-echo";
-
-window.Pusher = require("pusher-js");
-
+import Pusher from "pusher-js";
+window.Pusher = Pusher;
 window.Echo = new Echo({
     broadcaster: "pusher",
-    key: "dummyKey", // Provide a dummy value
-    cluster: "dummyCluster", // Provide a dummy value
-    encrypted: true,
+    key: "local",
+    cluster: "mt1",
+    forceTLS: false,
     wsHost: window.location.hostname,
-    wsPort: 6001, // Or your WebSocket port
-    disableStats: true,
+    wsPort: 6001,
+    encrypted: false,
+    enabledTreanspots: ["ws", "wss"],
 });
