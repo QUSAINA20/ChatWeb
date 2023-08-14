@@ -25,7 +25,7 @@ class ChatController extends Controller
         $chat->user1_id = auth()->id();
         $chat->user2_id = $request->user_id;
         $chat->save();
-        return redirect()->route('chats.show', $chat);
+        return redirect()->route('chat.show', $chat);
     }
 
     public function sendMessage(Request $request)
@@ -48,7 +48,13 @@ class ChatController extends Controller
         $messages = $chat->messages()->with('user')->get();
         $userId = auth()->id();
 
+        // Get the user's chats
+        $userChats = Chat::where('user1_id', $userId)
+            ->orWhere('user2_id', $userId)
+            ->get();
+        $otherUser = $userId == $chat->user1_id ? $chat->user2 : $chat->user1;
 
-        return view('chats.show', compact('userId', 'chat', 'messages'));
+
+        return view('chats.show', compact('userId', 'chat', 'messages', 'userChats', 'otherUser'));
     }
 }

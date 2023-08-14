@@ -33,7 +33,7 @@ class NewChatMessage implements ShouldBroadcast
      */
     public function broadcastOn()
     {
-        return new Channel('public-chat');
+        return new PresenceChannel('public-chat.' . $this->message->chat_id);
     }
     public function broadcastAs()
     {

@@ -21,10 +21,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/chats/{chat}', [ChatController::class, 'show']);
+Route::get('/chats/{chat}', [ChatController::class, 'show'])->name('chat.show');
 Route::post('/send-message', [ChatController::class, 'sendMessage'])->name('send-message');
-Route::post('/chat/create', [ChatController::class, 'createChat']);
-Route::get('chats/create', [ChatController::class, 'create']);
+Route::post('/chat/create', [ChatController::class, 'createChat'])->name('create.chat');
+Route::get('/chat/create', [ChatController::class, 'create']);
 
 
 
