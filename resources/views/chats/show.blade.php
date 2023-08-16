@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="bg-green-500 p-4 flex justify-between items-center">
+        <div class="bg-green-500 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-10">
             <h2 class="text-white text-xl font-semibold">{{ $otherUser->name }}</h2>
             <span class="text-xs ml-2" id="other-user-status"></span>
         </div>
@@ -8,18 +8,18 @@
 
     <div class="flex">
         <!-- Chat List -->
-        <div class="w-1/4 bg-white dark:bg-gray-800 p-4 overflow-y-auto">
+        <div class="w-1/4 bg-white dark:bg-gray-800 p-4 overflow-y-auto chat-list">
             <h3 class="text-lg font-semibold mb-2">Your Chats</h3>
             <ul class="space-y-2">
                 @foreach ($userChats as $userChat)
                     <li>
                         <a href="{{ route('chat.show', ['chat' => $userChat->id]) }}"
-                            class="block p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            class="block p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                            data-chat-id="{{ $userChat->id }}"> <!-- Add data-chat-id attribute -->
                             {{ $userChat->user1->name }} and {{ $userChat->user2->name }}
                             <span class="ml-2 text-xs"
                                 id="user-status-{{ $userChat->user1->id == auth()->id() ? $userChat->user2->id : $userChat->user1->id }}"></span>
                         </a>
-
                     </li>
                 @endforeach
             </ul>
@@ -55,6 +55,7 @@
         </form>
     </div>
 </x-app-layout>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.3/dist/sweetalert2.all.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         const otherUserStatusElement = document.getElementById("other-user-status");
@@ -62,11 +63,68 @@
         const chatForm = document.getElementById("chat-form");
         const csrfToken = document.head.querySelector('meta[name="csrf-token"]').content;
         const chatId = document.getElementById("chat_id").value;
+        window.onload = function() {
+            const chatMessagesContainer = document.getElementById("chat-messages");
 
-        // ... Rest of your JavaScript code ...
+            // Delay scrolling by 100 milliseconds
+            setTimeout(function() {
+                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+            }, 100);
+
+            // ...
+        };
+
+
 
         @auth
+        const userId = {{ auth()->id() }};
         const otherUserId = {{ $otherUser->id }};
+
+        const chatList = document.querySelector(".chat-list");
+        const newMessageNotificationChannel = Echo.private(`notifications.${userId}`);
+
+        newMessageNotificationChannel.subscribed(() => {
+            console.log('subscribed to newMessageNotificationChannel');
+        }).listen('.new-message', (e) => {
+            console.log('New message notification received:', e);
+            if (e.chatId != chatId) {
+                showNewMessageNotification(e.senderName, e.chatMessage);
+            }
+            // Bold the chat from which the notification comes
+            boldChatFromNotification(e.chatId); // Use e.chatId
+        });
+
+        // ...
+
+        // Function to bold the chat from which the notification comes
+        function boldChatFromNotification(chatId) {
+            // Find the chat link element in the chat list based on chatId
+            const chatLink = chatList.querySelector(`a[data-chat-id="${chatId}"]`);
+
+            if (chatLink) {
+                // Add bold styling to the chat link
+                chatLink.classList.add("font-semibold");
+            }
+        }
+
+        function showNewMessageNotification(senderName, message) {
+            Swal.fire({
+                title: `New Message from ${senderName}`,
+                text: `${message}`,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Open Chat',
+                cancelButtonText: 'Dismiss'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect the user to the chat with the notified chatId
+                    window.location.href = "{{ route('chat.show', ['chat' => $userChat->id]) }}"
+                }
+            });
+        }
+
         // Set up the chat presence channel
         const chatPresenceChannel = Echo.join(`public-chat.${chatId}`)
             .here(users => {
@@ -90,11 +148,12 @@
 
     function updateOtherUserStatus(isOnline) {
         if (isOnline) {
-            otherUserStatusElement.innerHTML = '<span class="text-green-1000">Online</span>';
+            otherUserStatusElement.innerHTML = '<span class="text-green-1000">In chat</span>';
         } else {
-            otherUserStatusElement.innerHTML = '<span class="text-gray-1000">Offline</span>';
+            otherUserStatusElement.innerHTML = '<span class="text-gray-1000">Not In chat </span>';
         }
     }
+
 
 
     chatPresenceChannel.listen(".new-chat-message", (e) => {
@@ -109,6 +168,7 @@
         });
     });
 
+
     // Handle form submission
     chatForm.addEventListener("submit", async (event) => {
         event.preventDefault(); // Prevent the default form submission
@@ -122,7 +182,7 @@
                 message: userInput,
             });
 
-            console.log("Message sent:", response.data.message);
+
             document.getElementById("input-message").value = "";
 
             // Scroll to the bottom of the chat window
