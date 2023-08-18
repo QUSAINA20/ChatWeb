@@ -23,6 +23,10 @@ Broadcast::channel('public-chat.{chatId}', function ($user, $chatId) {
 
     return $user; // Replace with your authorization logic
 });
+Broadcast::channel('group-channel.{groupId}', function ($user, $groupId) {
+
+    return $user; // Replace with your authorization logic
+});
 Broadcast::channel('notifications.{userId}', function ($user, $userId) {
     return true;
 });

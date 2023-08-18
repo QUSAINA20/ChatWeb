@@ -63,18 +63,6 @@
         const chatForm = document.getElementById("chat-form");
         const csrfToken = document.head.querySelector('meta[name="csrf-token"]').content;
         const chatId = document.getElementById("chat_id").value;
-        window.onload = function() {
-            const chatMessagesContainer = document.getElementById("chat-messages");
-
-            // Delay scrolling by 100 milliseconds
-            setTimeout(function() {
-                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-            }, 100);
-
-            // ...
-        };
-
-
 
         @auth
         const userId = {{ auth()->id() }};
@@ -179,6 +167,7 @@
             const response = await axios.post("/send-message", {
                 _token: csrfToken,
                 chat_id: chatId,
+                type: 'individual',
                 message: userInput,
             });
 
@@ -231,6 +220,7 @@
         messageBubble.appendChild(senderName);
         messageBubble.appendChild(messageText);
         messageElement.appendChild(messageBubble);
+
 
         chatMessagesContainer.appendChild(messageElement);
 
