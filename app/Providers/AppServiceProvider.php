@@ -24,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        View::composer('*', function ($view) {
+            if (auth()->check()) {
+                $groups = cache()->remember('user_groups_' . auth()->id(), now()->addMinutes(10), function () {
+                    return auth()->user()->groups;
+                });
+
+                $view->with('groups', $groups);
+            }
+        });
     }
 }

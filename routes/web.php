@@ -33,7 +33,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/groups', [GroupController::class, 'listGroups'])->name('group.list');
+    Route::get('/list-groups', [GroupController::class, 'listGroups'])->name('group.list');
     Route::get('/groups/create', [GroupController::class, 'create'])->name('group.create');
     Route::get('/groups/{group}', [GroupController::class, 'show'])->name('group.show');
     Route::post('/groups', [GroupController::class, 'store'])->name('group.store');

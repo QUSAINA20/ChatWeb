@@ -29,7 +29,9 @@ class GroupController extends Controller
         }
 
         // Load necessary relationships for the group
-        $group->load(['creator', 'admin', 'users', 'messages.user']);
+        $group->load(['creator', 'admin', 'users', 'messages' => function ($query) {
+            $query->with('user');
+        }]);
 
         // Get the messages for the group chat
         $messages = $group->messages ?? collect();

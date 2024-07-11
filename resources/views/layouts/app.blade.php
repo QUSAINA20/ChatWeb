@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
-<head>
+<head style="color: blue">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-
     <title>{{ config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
@@ -34,8 +32,6 @@
             </header>
         @endif
 
-
-
         <!-- Page Content -->
         <main>
             {{ $slot }}
@@ -57,7 +53,7 @@
 
                 showNewGroupNotification(groupName, groupId);
             });
-            @foreach ($groups = auth()->user()->groups as $group)
+            @foreach ($groups as $group)
                 const groupChannel{{ $group->id }} = Echo.join(`group-channel.{{ $group->id }}`)
                     .here(users => {
                         console.log(`Users currently in Group {{ $group->id }}:`, users);

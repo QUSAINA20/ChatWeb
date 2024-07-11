@@ -65,13 +65,17 @@
     document.addEventListener("DOMContentLoaded", () => {
         const chatForm = document.getElementById("chat-form");
         const csrfToken = document.head.querySelector('meta[name="csrf-token"]').content;
-        const groupId = document.getElementById("group_id").value; // Extract the group_id
+        const groupId = {{ $group->id }};
+        const group = @json($group);
+
         const inputMessage = document.getElementById("input-message");
         const chatMessagesContainer = document.getElementById("chat-messages");
 
 
         @auth
         const userId = {{ auth()->id() }};
+        const user = @json(auth()->user());
+
         const typingIndicator = document.getElementById(`typing-indicator-${userId}`);
         const userName = "{{ auth()->user()->name }}";
         const newMessageNotificationChannel = Echo.private(`notifications.${userId}`);
