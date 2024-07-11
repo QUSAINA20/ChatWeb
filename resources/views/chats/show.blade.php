@@ -1,60 +1,110 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="bg-green-500 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-10">
-            <h2 class="text-white text-xl font-semibold">{{ $otherUser->name }}</h2>
-            <span class="text-xs ml-2" id="other-user-status"></span>
+        <div class="bg-purple-500 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-10">
+            <h2 class="text-white text-xl font-semibold p-2">{{ $otherUser->name }}</h2>
+            <span id="other-user-status" class="flex-shrink-0 w-4 h-4 rounded-full mr-auto p-2"></span>
         </div>
     </x-slot>
 
-    <div class="flex">
-        <!-- Chat List -->
-        <div class="w-1/4 bg-white dark:bg-gray-800 p-4 overflow-y-auto chat-list">
-            <h3 class="text-lg font-semibold mb-2">Your Chats</h3>
-            <ul class="space-y-2">
-                @foreach ($userChats as $userChat)
-                    <li>
-                        <a href="{{ route('chat.show', ['chat' => $userChat->id]) }}"
-                            class="block p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                            data-chat-id="{{ $userChat->id }}"> <!-- Add data-chat-id attribute -->
-                            {{ $userChat->user1->name }} and {{ $userChat->user2->name }}
-                            <span class="ml-2 text-xs"
-                                id="user-status-{{ $userChat->user1->id == auth()->id() ? $userChat->user2->id : $userChat->user1->id }}"></span>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
+    <div class="flex flex-col h-screen pt-16">
+        <div class="flex flex-grow overflow-hidden">
+            <!-- Chat List -->
+            <div class="w-1/4 bg-white dark:bg-gray-800 p-4 overflow-y-auto chat-list border-r border-gray-200">
+                <h3 class="text-lg font-semibold mb-2 text-white">Your Chats</h3>
+                <ul class="space-y-2">
+                    @foreach ($userChats as $userChat)
+                        <li>
+                            <a href="{{ route('chat.show', ['chat' => $userChat->id]) }}"
+                                class="block p-2 rounded-lg transition duration-300 ease-in-out hover:bg-gray-100 dark:hover:bg-gray-700
+                                       @if ($userChat->id == $chat->id) bg-purple-200 dark:bg-purple-700 @endif text-white"
+                                data-chat-id="{{ $userChat->id }}">
+                                {{ $userChat->user1->id == auth()->id() ? $userChat->user2->name : $userChat->user1->name }}
+                                <span class="ml-2 text-xs flex-shrink-0 w-4 h-4 rounded-full"
+                                    id="user-status-{{ $userChat->user1->id == auth()->id() ? $userChat->user2->id : $userChat->user1->id }}"></span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
 
-        <!-- Chat Window -->
-        <div class="flex-grow px-4 py-8 chat-window bg-gray-100 overflow-y-auto" style="padding-bottom: 80px;">
-            <ul class="space-y-4" id="chat-messages">
-                @foreach ($messages as $message)
-                    <li class="flex space-x-2 @if ($message->user_id !== auth()->id()) flex-row-reverse @endif">
-                        <div
-                            class="rounded-lg p-2 @if ($message->user_id === auth()->id()) bg-green-100 @else bg-white @endif shadow-md">
-                            <span
-                                class="font-semibold @if ($message->user_id === auth()->id()) text-green-800 @else text-gray-800 @endif">{{ $message->user->name }}:</span>
-                            <p class="@if ($message->user_id === auth()->id()) text-green-700 @else text-gray-700 @endif">
-                                {{ $message->message }}</p>
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
+            <!-- Chat Window -->
+            <div class="flex-grow flex flex-col bg-purple-50 dark:bg-gray-900">
+                <div class="flex-grow p-4 overflow-y-auto chat-messages-container" id="chat-messages">
+                    <ul class="space-y-4">
+                        @foreach ($messages as $message)
+                            <li class="flex @if ($message->user_id !== auth()->id()) flex-row-reverse @endif text-white">
+                                <div
+                                    class="max-w-xs p-3 rounded-lg @if ($message->user_id === auth()->id()) bg-purple-500 text-white @else bg-white dark:bg-purple-400 @endif shadow-md">
+                                    <p class="mt-1">
+                                        {{ $message->message }}
+                                    </p>
 
-    <!-- Chat Input -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 shadow-top" style="height: 80px;">
-        <form id="chat-form" class="flex space-x-2 h-full">
-            @csrf
-            <input type="hidden" name="chat_id" id="chat_id" value="{{ $chat->id }}">
-            <input id="input-message" type="text" name="message" placeholder="Type your message..."
-                class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600">
-            <button type="submit"
-                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none">Send</button>
-        </form>
+                                    <span
+                                        class="block text-xs mt-1 text-gray-500 dark:text-white @if ($message->user_id !== auth()->id()) mr-auto @endif">
+                                        {{ $message->created_at->format('H:i') }}
+                                    </span>
+
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="bg-purple-200 dark:bg-gray-700 p-4 shadow-md">
+                    <form id="chat-form" class="flex items-center space-x-2">
+                        @csrf
+                        <input type="hidden" name="chat_id" id="chat_id" value="{{ $chat->id }}">
+                        <input id="input-message" type="text" name="message" placeholder="Type your message..."
+                            class="flex-grow px-4 py-2 rounded-full focus:outline-none focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600">
+                        <button type="submit"
+                            class="bg-purple-600 text-white px-4 py-2 rounded-full hover:bg-purple-700 focus:outline-none">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </x-app-layout>
+
+<style>
+    /* Custom scrollbar for chat messages */
+    .chat-messages-container::-webkit-scrollbar {
+        width: 12px;
+    }
+
+    .chat-messages-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .chat-messages-container::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 10px;
+        border: 3px solid #f1f1f1;
+    }
+
+    .chat-messages-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .chat-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .chat-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .chat-list::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 10px;
+    }
+
+    .chat-list::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.3/dist/sweetalert2.all.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -78,42 +128,9 @@
             if (e.chatId != chatId) {
                 showNewMessageNotification(e.senderName, e.chatMessage);
             }
-            // Bold the chat from which the notification comes
-            boldChatFromNotification(e.chatId); // Use e.chatId
+            boldChatFromNotification(e.chatId);
         });
 
-        // ...
-
-        // Function to bold the chat from which the notification comes
-        function boldChatFromNotification(chatId) {
-            // Find the chat link element in the chat list based on chatId
-            const chatLink = chatList.querySelector(`a[data-chat-id="${chatId}"]`);
-
-            if (chatLink) {
-                // Add bold styling to the chat link
-                chatLink.classList.add("font-semibold");
-            }
-        }
-
-        function showNewMessageNotification(senderName, message) {
-            Swal.fire({
-                title: `New Message from ${senderName}`,
-                text: `${message}`,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Open Chat',
-                cancelButtonText: 'Dismiss'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Redirect the user to the chat with the notified chatId
-                    window.location.href = "{{ route('chat.show', ['chat' => $userChat->id]) }}"
-                }
-            });
-        }
-
-        // Set up the chat presence channel
         const chatPresenceChannel = Echo.join(`public-chat.${chatId}`)
             .here(users => {
                 console.log('Users currently in the chat:', users);
@@ -135,31 +152,23 @@
     @endauth
 
     function updateOtherUserStatus(isOnline) {
-        if (isOnline) {
-            otherUserStatusElement.innerHTML = '<span class="text-green-1000">In chat</span>';
-        } else {
-            otherUserStatusElement.innerHTML = '<span class="text-gray-1000">Not In chat </span>';
-        }
+        otherUserStatusElement.classList.toggle('bg-white ', isOnline);
+        otherUserStatusElement.classList.toggle('bg-purple-400', !isOnline);
     }
-
-
 
     chatPresenceChannel.listen(".new-chat-message", (e) => {
         const newMessage = e.message;
         console.log(newMessage);
         appendMessageToChatUI(newMessage);
 
-        // Scroll to the newly added message
         const lastMessage = chatMessagesContainer.lastElementChild;
         lastMessage.scrollIntoView({
             behavior: 'smooth'
         });
     });
 
-
-    // Handle form submission
     chatForm.addEventListener("submit", async (event) => {
-        event.preventDefault(); // Prevent the default form submission
+        event.preventDefault();
 
         const userInput = document.getElementById("input-message").value;
 
@@ -171,10 +180,8 @@
                 message: userInput,
             });
 
-
             document.getElementById("input-message").value = "";
 
-            // Scroll to the bottom of the chat window
             const lastMessage = chatMessagesContainer.lastElementChild;
             lastMessage.scrollIntoView({
                 behavior: 'smooth'
@@ -184,7 +191,6 @@
         }
     });
 
-    // Function to append a new message to the chat UI
     function appendMessageToChatUI(message) {
         const messageElement = document.createElement("li");
         messageElement.classList.add("flex", "space-x-2");
@@ -193,41 +199,56 @@
         }
 
         const messageBubble = document.createElement("div");
-        messageBubble.classList.add("rounded-lg", "p-2", "shadow-md");
-        if (message.user_id === userId) {
-            messageBubble.classList.add("bg-green-100");
-        } else {
-            messageBubble.classList.add("bg-white");
-        }
+        messageBubble.classList.add("max-w-xs", "p-4", "rounded-lg", "shadow-md");
+        messageBubble.classList.add(message.user_id === userId ? "bg-purple-500 text-white" :
+            "bg-white dark:bg-gray-700");
 
         const senderName = document.createElement("span");
-        senderName.classList.add("font-semibold");
-        if (message.user_id === userId) {
-            senderName.classList.add("text-green-800");
-        } else {
-            senderName.classList.add("text-gray-800");
-        }
-        senderName.innerText = message.user.name + ":";
+        senderName.classList.add("block", "font-semibold");
+        senderName.innerText = `${message.user.name}:`;
 
         const messageText = document.createElement("p");
-        if (message.user_id === userId) {
-            messageText.classList.add("text-green-700");
-        } else {
-            messageText.classList.add("text-gray-700");
-        }
+        messageText.classList.add("mt-1");
         messageText.innerText = message.message;
+
+        const messageTime = document.createElement("span");
+        messageTime.classList.add("block", "text-xs", "mt-1", "text-gray-500", "dark:text-gray-400");
+        messageTime.innerText = message.created_at;
 
         messageBubble.appendChild(senderName);
         messageBubble.appendChild(messageText);
+        messageBubble.appendChild(messageTime);
         messageElement.appendChild(messageBubble);
-
-
         chatMessagesContainer.appendChild(messageElement);
 
-        // Scroll to the newly added message
         const lastMessage = chatMessagesContainer.lastElementChild;
         lastMessage.scrollIntoView({
             behavior: 'smooth'
+        });
+    }
+
+    function boldChatFromNotification(chatId) {
+        const chatLink = chatList.querySelector(`a[data-chat-id="${chatId}"]`);
+
+        if (chatLink) {
+            chatLink.classList.add("font-semibold");
+        }
+    }
+
+    function showNewMessageNotification(senderName, message) {
+        Swal.fire({
+            title: `New Message from ${senderName}`,
+            text: `${message}`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Open Chat',
+            cancelButtonText: 'Dismiss'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ route('chat.show', ['chat' => $userChat->id]) }}"
+            }
         });
     }
     });

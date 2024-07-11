@@ -18,12 +18,14 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/test', function () {
-    return "hi";
-});
+
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/chats/{chat}', [ChatController::class, 'show'])->name('chat.show');
     Route::post('/send-message', [ChatController::class, 'sendMessage']);
@@ -47,9 +49,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

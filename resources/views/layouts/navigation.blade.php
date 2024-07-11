@@ -54,11 +54,9 @@
                             {{ __('Profile') }}
                         </x-dropdown-link>
 
-                        <!-- Chat Notification Popup -->
-                        <button @click="openChatPopup()"
-                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700 transition">
+                        <x-dropdown-link :href="route('create.chat')">
                             {{ __('New Chat Message') }}
-                        </button>
+                        </x-dropdown-link>
 
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -111,10 +109,9 @@
                 </x-responsive-nav-link>
 
                 <!-- Chat Notification Popup -->
-                <button @click="openChatPopup()"
-                    class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700 transition">
+                <x-dropdown-link :href="route('create.chat')">
                     {{ __('New Chat Message') }}
-                </button>
+                </x-dropdown-link>
 
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">

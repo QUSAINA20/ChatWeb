@@ -1,223 +1,203 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="bg-green-500 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-10">
+        <div class="bg-purple-500 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-10">
             <h2 class="text-white text-xl font-semibold">{{ $group->name }}</h2>
             <span class="text-xs ml-2" id="other-user-status"></span>
-            <p>{{ $invitationLink }}</p>
+            <button id="copy-invitation-link" class="bg-white text-purple-500 px-4 py-2 rounded-lg hover:bg-gray-100">
+                Copy Invitation Link
+            </button>
         </div>
     </x-slot>
 
-    <div class="flex h-screen-3/4 overflow-hidden">
+    <div class="flex h-screen pt-16 overflow-hidden">
         <!-- Chat List (Group Members) -->
         <div class="w-1/4 bg-white dark:bg-gray-800 p-4 overflow-y-auto chat-list">
-            <h3 class="text-lg font-semibold mb-2">Group Members</h3>
+            <h3 class="text-lg font-semibold mb-2 text-white">Group Members</h3>
             <ul class="space-y-2">
                 @foreach ($group->users as $user)
                     <li>
                         <div
-                            class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-white">
                             <span id="user-status-{{ $user->id }}"
-                                class="flex-shrink-0 w-4 h-4 rounded-full {{ $user->online ? 'bg-green-500' : 'bg-gray-500' }}"></span>
+                                class="flex-shrink-0 w-4 h-4 rounded-full {{ $user->online ? 'bg-purple-500' : 'bg-white' }}"></span>
                             <p>{{ $user->name }}</p>
                             <span id="typing-indicator-{{ $user->id }}" class="text-xs text-gray-500 ml-2"></span>
                         </div>
                     </li>
                 @endforeach
-
             </ul>
         </div>
 
         <!-- Chat Window (Group Chat) -->
-        <div class="flex-grow p-4 chat-window bg-gray-100 overflow-y-auto">
-            <ul class="space-y-4" id="chat-messages">
-                @foreach ($messages as $message)
-                    <li class="flex items-start space-x-2 @if ($message->user_id !== $userId) flex-row-reverse @endif">
-                        <div
-                            class="rounded-lg p-2 @if ($message->user_id === $userId) bg-green-100 @else bg-white @endif shadow-md">
-                            <p class="@if ($message->user_id === $userId) text-green-700 @else text-gray-700 @endif">
-                                <span class="font-semibold">{{ $message->user->name }}:</span>
-                                {{ $message->message }}
-                            </p>
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
+        <div class="flex-grow flex flex-col bg-gray-100 dark:bg-gray-900">
+            <div class="flex-grow p-4 overflow-y-auto chat-messages-container" id="chat-messages">
+                <ul class="space-y-4">
+                    @foreach ($messages as $message)
+                        <li class="flex @if ($message->user_id !== $userId) flex-row-reverse @endif">
+                            <div
+                                class="max-w-xs p-4 rounded-lg @if ($message->user_id === $userId) bg-purple-200 @else bg-white dark:bg-purple-400 @endif shadow-md">
+                                <span class="block font-semibold">{{ $message->user->name }}:</span>
+                                <p class="mt-1">{{ $message->message }}</p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="bg-white dark:bg-gray-800 p-4 shadow-top">
+                <form id="chat-form" class="flex items-center space-x-2">
+                    @csrf
+                    <input type="hidden" name="group_id" id="group_id" value="{{ $group->id }}">
+                    <input id="input-message" type="text" name="message" placeholder="Type your message..."
+                        class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600">
+                    <button type="submit"
+                        class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 focus:outline-none">Send</button>
+                </form>
+            </div>
         </div>
     </div>
-
-
-
-    <!-- Chat Input -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 shadow-top" style="height: 80px;">
-        <form id="chat-form" class="flex space-x-2 h-full">
-            @csrf
-            <input name="id" id="group_id" value="{{ $group->id }}" type="hidden">
-            <input id="input-message" type="text" name="message" placeholder="Type your message..."
-                class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600">
-            <button type="submit"
-                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none">Send</button>
-        </form>
-    </div>
+    <input type="hidden" id="invitation-link" value="{{ $invitationLink }}">
 </x-app-layout>
 
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
+        const chatMessagesContainer = document.getElementById("chat-messages");
         const chatForm = document.getElementById("chat-form");
         const csrfToken = document.head.querySelector('meta[name="csrf-token"]').content;
-        const groupId = {{ $group->id }};
-        const group = @json($group);
-
-        const inputMessage = document.getElementById("input-message");
-        const chatMessagesContainer = document.getElementById("chat-messages");
-
-
-        @auth
+        const groupId = document.getElementById("group_id").value;
         const userId = {{ auth()->id() }};
-        const user = @json(auth()->user());
-
-        const typingIndicator = document.getElementById(`typing-indicator-${userId}`);
         const userName = "{{ auth()->user()->name }}";
-        const newMessageNotificationChannel = Echo.private(`notifications.${userId}`);
+
+        const copyButton = document.getElementById("copy-invitation-link");
+        const invitationLink = document.getElementById("invitation-link").value;
+
+        copyButton.addEventListener("click", () => {
+            navigator.clipboard.writeText(invitationLink).then(() => {
+                alert("Invitation link copied to clipboard!");
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        });
+
         const chatPresenceChannel = Echo.join(`group-channel.${groupId}`)
             .here(users => {
                 console.log('Users currently in the chat:', users);
-
-                // Update user presence when joining
                 users.forEach(user => updateUserPresence(user.id, true));
             })
             .joining(user => {
                 console.log('User joining:', user);
-
-                // Update user presence when joining
                 updateUserPresence(user.id, true);
             })
             .leaving(user => {
                 console.log('User leaving:', user);
-
-                // Update user presence when leaving
                 updateUserPresence(user.id, false);
             });
 
+        const inputMessage = document.getElementById("input-message");
         inputMessage.addEventListener("input", () => {
             if (inputMessage.value.length === 0) {
                 chatPresenceChannel.whisper('stop-typing', {
-                    userId: userId
+                    userId
                 });
             } else {
                 chatPresenceChannel.whisper('typing', {
-                    userId: userId
-                })
-            };
+                    userId
+                });
+            }
         });
-    @endauth
 
-    chatPresenceChannel.listen(".new-group-message", (e) => {
-        const newMessage = e.message;
-        console.log(newMessage);
-        appendMessageToChatUI(newMessage);
-
-        // Scroll to the newly added message
-        const lastMessage = chatMessagesContainer.lastElementChild;
-        lastMessage.scrollIntoView({
-            behavior: 'smooth'
+        chatPresenceChannel.listen(".new-group-message", (event) => {
+            const newMessage = event.message;
+            console.log(newMessage);
+            appendMessageToChatUI(newMessage);
         });
-    }); chatPresenceChannel.listenForWhisper('typing', (e) => {
-        const userIdTyping = e.userId;
-        const typingIndicator = document.getElementById(`typing-indicator-${userIdTyping}`);
-        typingIndicator.textContent = ` typing...`;
-    });
 
-    chatPresenceChannel.listenForWhisper('stop-typing', (e) => {
-        const userIdStoppedTyping = e.userId;
-        const typingIndicator = document.getElementById(`typing-indicator-${userIdStoppedTyping}`);
-        typingIndicator.textContent = ''; // Clear the typing indicator
-    });
-
-
-
-    // Function to append a new message to the chat UI
-    function appendMessageToChatUI(message) {
-        const messageElement = document.createElement("li");
-        messageElement.classList.add("flex", "space-x-2");
-        if (message.user_id !== userId) {
-            messageElement.classList.add("flex-row-reverse");
-        }
-
-        const messageBubble = document.createElement("div");
-        messageBubble.classList.add("rounded-lg", "p-2", "shadow-md");
-        if (message.user_id === userId) {
-            messageBubble.classList.add("bg-green-100");
-        } else {
-            messageBubble.classList.add("bg-white");
-        }
-
-        const senderName = document.createElement("span");
-        senderName.classList.add("font-semibold");
-        if (message.user_id === userId) {
-            senderName.classList.add("text-green-800");
-        } else {
-            senderName.classList.add("text-gray-800");
-        }
-        senderName.innerText = message.user.name + ":";
-
-        const messageText = document.createElement("p");
-        if (message.user_id === userId) {
-            messageText.classList.add("text-green-700");
-        } else {
-            messageText.classList.add("text-gray-700");
-        }
-        messageText.innerText = message.message;
-
-        messageBubble.appendChild(senderName);
-        messageBubble.appendChild(messageText);
-        messageElement.appendChild(messageBubble);
-
-        const chatMessagesContainer = document.getElementById("chat-messages");
-        chatMessagesContainer.appendChild(messageElement);
-
-        // Scroll to the newly added message
-        const lastMessage = chatMessagesContainer.lastElementChild;
-        lastMessage.scrollIntoView({
-            behavior: 'smooth'
+        chatPresenceChannel.listenForWhisper('typing', (event) => {
+            const {
+                userId
+            } = event;
+            const typingIndicator = document.getElementById(`typing-indicator-${userId}`);
+            if (typingIndicator) {
+                typingIndicator.textContent = 'typing...';
+            }
         });
-    }
 
-    function updateUserPresence(userId, isOnline) {
-        const userStatusSpan = document.getElementById(`user-status-${userId}`);
-        if (userStatusSpan) {
-            userStatusSpan.className =
-                `flex-shrink-0 w-4 h-4 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`;
-        }
-    }
+        chatPresenceChannel.listenForWhisper('stop-typing', (event) => {
+            const {
+                userId
+            } = event;
+            const typingIndicator = document.getElementById(`typing-indicator-${userId}`);
+            if (typingIndicator) {
+                typingIndicator.textContent = '';
+            }
+        });
 
-    chatForm.addEventListener("submit", async (event) => {
-        event.preventDefault(); // Prevent the default form submission
+        chatForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const userInput = inputMessage.value.trim();
 
-        const userInput = document.getElementById("input-message").value;
+            try {
+                if (userInput) {
+                    const response = await axios.post("/send-group-message", {
+                        _token: csrfToken,
+                        group_id: groupId,
+                        message: userInput,
+                    });
 
-        try {
-            const response = await axios.post("/send-group-message", {
-                _token: csrfToken,
-                group_id: groupId, // Include the correct group_id for group messages
-                message: userInput,
-            });
+                    inputMessage.value = '';
+                    chatPresenceChannel.whisper('stop-typing', {
+                        userId
+                    });
 
-            document.getElementById("input-message").value = "";
+                    const lastMessage = chatMessagesContainer.lastElementChild;
+                    lastMessage.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            } catch (error) {
+                console.error("Error sending message:", error);
+            }
+        });
 
-            chatPresenceChannel.whisper('stop-typing', {
-                userId: userId
-            });
+        function appendMessageToChatUI(message) {
+            const messageElement = document.createElement("li");
+            messageElement.classList.add("flex", "items-start", "space-x-2");
+            if (message.user_id !== userId) {
+                messageElement.classList.add("flex-row-reverse");
+            }
 
-            // Scroll to the bottom of the chat window
-            const chatMessagesContainer = document.getElementById("chat-messages");
+            const messageBubble = document.createElement("div");
+            messageBubble.classList.add("max-w-xs", "p-4", "rounded-lg", "shadow-md");
+            messageBubble.classList.add(message.user_id === userId ? "bg-purple-200" : "bg-white", message
+                .user_id === userId ? "text-purple-700" : "text-gray-700");
+
+            const senderName = document.createElement("span");
+            senderName.classList.add("block", "font-semibold");
+            senderName.textContent = `${message.user.name}:`;
+
+            const messageText = document.createElement("p");
+            messageText.classList.add("mt-1");
+            messageText.textContent = message.message;
+
+            messageBubble.appendChild(senderName);
+            messageBubble.appendChild(messageText);
+            messageElement.appendChild(messageBubble);
+            chatMessagesContainer.appendChild(messageElement);
+
             const lastMessage = chatMessagesContainer.lastElementChild;
             lastMessage.scrollIntoView({
                 behavior: 'smooth'
             });
-        } catch (error) {
-            console.error("Error sending message:", error);
+        }
+
+        function updateUserPresence(userId, isOnline) {
+            const userStatusSpan = document.getElementById(`user-status-${userId}`);
+            if (userStatusSpan) {
+                userStatusSpan.className =
+                    `flex-shrink-0 w-4 h-4 rounded-full ${isOnline ? 'bg-purple-500' : 'bg-white-500'}`;
+            }
         }
     });
-    })
 </script>
